@@ -1,4 +1,8 @@
 # Reconfigurable Hinged Kirigami Tessellations
+<p>
+<img align="center"  src="./figs/teaser.png" width="1000">
+</p>
+
 This is an example code for our paper "Reconfigurable Hinged Kirigami Tessellations", *SIGGRAPH Asia 2025 (conference track)*, by [Aviv Segall*](https://igl.ethz.ch/people/), [Jing Ren*](https://ren-jing.com/), [Marcel Padilla](https://marcelpadilla.com/) and [Olga Sorkine-Hornung](https://igl.ethz.ch/people/sorkine).
 
 
@@ -21,5 +25,5 @@ support. This work was supported in part by the ERC Consolidator
 Grant No. 101003104 (MYCLOTH) and the Feodor Lynen Fellowship.
 
 ## Contact
-Please let us know (aviv.segall, jing.ren@inf.ethz.ch) if you have any question regarding the algorithms/paper or you find any bugs in the code (´；д；`)
+Please let us know (aviv.segall, jing.ren, @inf.ethz.ch) if you have any question regarding the algorithms/paper or you find any bugs in the code (´；д；`)
 This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](http://creativecommons.org/licenses/by-nc/4.0/). For any commercial uses or derivatives, please contact us (aviv.segall, jing.ren, marcel.padilla, sorkine, @inf.ethz.ch). [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
