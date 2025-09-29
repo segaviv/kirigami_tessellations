@@ -3,7 +3,7 @@
 <img align="center"  src="./figs/teaser.jpg" width="1000">
 </p>
 
-This is an example code for our paper "Reconfigurable Hinged Kirigami Tessellations", *SIGGRAPH Asia 2025 (conference track)*, by [Aviv Segall*](https://igl.ethz.ch/people/), [Jing Ren*](https://ren-jing.com/), [Marcel Padilla](https://marcelpadilla.com/) and [Olga Sorkine-Hornung](https://igl.ethz.ch/people/sorkine).
+This repository contains the implementation for our paper "Reconfigurable Hinged Kirigami Tessellations", *SIGGRAPH Asia 2025 (conference track)*, by [Aviv Segall*](https://igl.ethz.ch/people/), [Jing Ren*](https://ren-jing.com/), [Marcel Padilla](https://marcelpadilla.com/) and [Olga Sorkine-Hornung](https://igl.ethz.ch/people/sorkine).
 
 
 In this project, we introduce a computational method for **designing kirigami patterns that reconfigure flat sheets into complex shapes**. By analyzing planar tilings and their rotational deployment, we identify valid cuts and generate novel, physically realizable structures. This enables inverse design of expressive, gap-free geometries through combinatorial reconfiguration.
@@ -11,24 +11,25 @@ In this project, we introduce a computational method for **designing kirigami pa
 More details about our paper can be found at: [[web demo]]() | [[project page]](https://igl.ethz.ch/projects/kirigami/) | [[paper]]() | [[suppl. video]](https://www.youtube.com/watch?v=DyvxWxhdnbg)) 
 
 ## Implementation
-We implemented a [web demo]() with interactive user interfaces (see screenshots below). 
+We provide an interactive [web demo]() with the following interfaces:
 | Figure 1: UI for pattern design | Figure 2: UI for shape approximation|
 |:--------------------------:|:--------------------------:|
 | <img src="./figs/eg_ui1.jpg" alt="Style variations without stroke" width="500"/> | <img src="./figs/eg_ui2.jpg" alt="Style variations with stroke" width="500"/>|
 
-Specifically, we have:
-- **UI for designing hinged kirigami patterns** (Fig.1):
-  - In the ```Design Canvas``, users can click three points to create a group of parallel lines (the first two pionts determine the base line, the third point determines the offset)
-  - Users can add multiple groups of parallel lines by keeping clicking on the canvas
-  - After clicking the ```cut tiling into kirigami``` button, the extracted kirigami pattern will be displayed in the ```Preview Canvas```. The deployment-unfriendly vertices (see Def.4.1 in our paper) will be highlighted in red. If there is no such vertices, the deployment will be displayed automatically
-- **UI for realizing 3D shapes from hinged kirigami patterns** (Fig.2):
-  -  Users can load a *disk-topology* triangle mesh and a pre-defined uniformly deployable kirigami pattern
-  -  Users can specify the number (```scale``` parameter) and the orientation (```rot``` parameter) of the tiles, the initialization (2D and 3D) will be displayed simutaneously.
-  -  Clicking the ```run optimization''' button will start to optimize the vertices in both 2D and 3D to achieve the reconfigurable kirigami pattern.
+Key features:
+- **Pattern Design Interface** (Fig.1):
+  - In the ```Design Canvas``, users can **click three points** to create a group of parallel lines (first two pionts define the base line, third determines offset)
+  - Users can add multiple groups of parallel lines by **continuing to click on the canvas**
+  - Click ```Cut Tiling into Kirigami``` to **generate patterns in the Preview Canvas**. Deployment-unfriendly vertices (Definition 4.1 in paper) are highlighted in red; valid patterns deploy automatically.
+- **Shape Approximation Interface** (Fig.2):
+  -  Users can import *disk-topology* triangle meshes and pre-defined uniformly deployable kirigami patterns
+  -  Users can adjust tile density (```scale``` parameter) and tile orientation (```rot``` parameter).  Then the corresponding initialization (2D and 3D) will be displayed simutaneously.
+  -  Click ```run optimization''' button to optimize the vertices in both 2D and 3D to achieve the reconfigurable kirigami pattern.
 
 
 Please refer to our paper for more techinical details. Full implementation can be found in the folder ```web_demo```. 
-The cutting patterns of some optimized hinged kirigami patterns for realizing 3D shapes can be found in the folder  ```fabrication_patterns```. You can use laser cutter to print these patterns on paper or felt to reproduce the fabrications shown in the paper.
+Pre-optimized cutting patterns for various 3D shapes are provided in the ```fabrication_patterns``` folder. 
+These patterns can be laser-cut from paper or felt to reproduce the fabrications demonstrated in the paper.
 
 ## Acknowledgements
 The authors thank the anonymous reviewers for their valuable
