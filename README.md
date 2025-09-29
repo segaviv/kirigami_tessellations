@@ -1,6 +1,6 @@
 # Reconfigurable Hinged Kirigami Tessellations
 <p>
-<img align="center"  src="./figs/teaser.png" width="1000">
+<img align="center"  src="./figs/teaser.jpg" width="1000">
 </p>
 
 This is an example code for our paper "Reconfigurable Hinged Kirigami Tessellations", *SIGGRAPH Asia 2025 (conference track)*, by [Aviv Segall*](https://igl.ethz.ch/people/), [Jing Ren*](https://ren-jing.com/), [Marcel Padilla](https://marcelpadilla.com/) and [Olga Sorkine-Hornung](https://igl.ethz.ch/people/sorkine).
@@ -8,7 +8,10 @@ This is an example code for our paper "Reconfigurable Hinged Kirigami Tessellati
 
 In this project, we introduce a computational method for **designing kirigami patterns that reconfigure flat sheets into complex shapes**. By analyzing planar tilings and their rotational deployment, we identify valid cuts and generate novel, physically realizable structures. This enables inverse design of expressive, gap-free geometries through combinatorial reconfiguration.
 
-More details about our paper can be found at: [[web demo]]() | [[project page]](https://igl.ethz.ch/projects/kirigami/) | [[paper]]() | [[suppl. video]](https://www.youtube.com/watch?v=DyvxWxhdnbg)) |  
+More details about our paper can be found at: [[web demo]]() | [[project page]](https://igl.ethz.ch/projects/kirigami/) | [[paper]]() | [[suppl. video]](https://www.youtube.com/watch?v=DyvxWxhdnbg)) 
+
+## Implementation
+We implemented a [[web demo]]() with interactive user interfaces
 
 ## Acknowledgements
 The authors thank the anonymous reviewers for their valuable
