@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Reconfigurable Hinged Kirigami Tessellations </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="js/design-module.js"></script>
+    <script src="js/preview-module.js"></script>
+    <script src="js/algorithm-module.js"></script>
+    <script src="js/app.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/utils/BufferGeometryUtils.js"></script>
+
+
+    <script>
+        // Minimal registration of module-type Service Worker and async call helper
+        (function registerKiriServiceWorker(){
+            if (!('serviceWorker' in navigator)) return;
+            navigator.serviceWorker.register('./sw.js', { type: 'module' })
+                .catch(function(e){ console.warn('SW registration failed:', e); });
+
+            async function getActiveServiceWorker() {
+                const registration = await navigator.serviceWorker.ready;
+                if (navigator.serviceWorker.controller) return navigator.serviceWorker.controller;
+                if (registration.active) return registration.active;
+                return new Promise(function(resolve){
+                    navigator.serviceWorker.addEventListener('controllerchange', function onChange(){
+                        navigator.serviceWorker.removeEventListener('controllerchange', onChange);
+                        resolve(navigator.serviceWorker.controller);
+                    }, { once: true });
+                });
+            }
+
+            window.kiriCallAsync = async function(fn, args = []){
+                const sw = await getActiveServiceWorker();
+                const channel = new MessageChannel();
+                return new Promise(function(resolve, reject){
+                    channel.port1.onmessage = function(event){
+                        var data = event.data || {};
+                        if (data.ok) resolve(data.result);
+                        else reject(new Error(data.error || 'Worker call failed'));
+                    };
+                    sw.postMessage({ type: fn, id: Date.now() + Math.random(), args: args }, [channel.port2]);
+                });
+            };
+        })();
+    </script>
+
+    <!-- <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script> -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    
+    <style>
+        /* Convert theme color to RGB for transparency calculations */
+        :root {
+            --theme-rgb: 58, 123, 213; /* RGB equivalent of your theme color */
+        }
+    </style>
+  <script type="module" crossorigin src="https://segaviv.github.io/kirigami_tessellations/assets/index-DoPTaZlg.js"></script>
+  <link rel="stylesheet" crossorigin href="https://segaviv.github.io/kirigami_tessellations/assets/index-BFo48T3T.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Title and Authors Section -->
+        <header class="paper-header">
+            <h1 class="paper-title"> Reconfigurable Hinged Kirigami Tessellations </h1>
+            <div class="authors">
+                <div class="author">
+                    <a href="https://segaviv.github.io/">
+                        <span class="author-name"> Aviv Segall</span>*
+                    </a>
+                    <!-- <sup class="author-affiliation">*</sup> -->
+                </div>
+                <div class="author">
+                    <a href="https://ren-jing.com/">
+                        <span class="author-name">Jing Ren</span>*
+                    </a>
+                    <!-- <sup class="author-affiliation">*</sup> -->
+                </div>
+                <div class="author">
+                    <a href="https://marcelpadilla.com/">
+                        <span class="author-name">Marcel Padilla</span>
+                    </a>
+                </div>
+                <div class="author">
+                    <a href="https://igl.ethz.ch/people/sorkine/">
+                        <span class="author-name">Olga Sorkine-Hornung</span>
+                    </a>
+                </div>
+            </div>
+            <div class="affiliations">
+                <div class="affiliation">ETH Zurich, Interactive Geometry Lab (<a href="https://igl.ethz.ch/">IGL</a>)</div> 
+                <b>SIGGRAPH Asia 2025</b> 
+                
+            </div>
+
+            
+
+            <!-- Resource Links Section -->
+           <div class="resources-container">
+            <a href="YOUR_PAPER_LINK_HERE" class="resource-item" target="_blank">
+                <span class="resource-icon"><i class="fas fa-file-pdf"></i></span>
+                <span class="resource-text">paper</span>
+            </a>
+            
+
+            
+            <a href="https://github.com/segaviv/kirigami_tessellations" class="resource-item" target="_blank">
+                <span class="resource-icon"><i class="fas fa-code"></i></span>
+                <span class="resource-text">code</span>
+            </a>
+            
+            <a href="https://youtu.be/DyvxWxhdnbg" class="resource-item" target="_blank">
+                <span class="resource-icon"><i class="fas fa-video"></i></span>
+                <span class="resource-text">supplementary video</span>
+            </a>
+
+        </div>
+        </header>
+
+    
+
+        <div class="env-video" style="max-width: 100%">
+            <video src="https://segaviv.github.io/kirigami_tessellations/assets/fastforward-Br3y7p08.mov" autoplay controls></video>
+        </div>
+
+        
+        <br>
+        We introduce a computational method for <strong>designing kirigami patterns that reconfigure flat sheets into complex shapes</strong>. 
+        By analyzing planar tilings and their rotational deployment, we identify valid cuts and generate novel, physically realizable structures. 
+        This enables inverse design of expressive, gap-free geometries through combinatorial reconfiguration.
+
+    
+
+    
+        <h2>Background</h2>
+
+        <div class="environment definition" data-split="80">
+            <div class="env-content-container">
+                <div class="env-text-container">
+                    <div class="env-header">Definition 1 (complete cut of a planar tiling)</div>
+                    <div class="env-text">
+                        For a planar tiling (i.e., a 2D manifold polygonal mesh with disk topology contains no holes), 
+                        we call a set of directed edges that covers <b>all interior</b> edges a <b>complete cut</b>. 
+                        The direction of each cut determines how the neighboring faces hinge after cutting: 
+                        cutting along it breaks their adjacency while preserving a hinge at the source vertex, producing a duplicate at the target vertex.
+                        <p class="note">
+                            Note: The left image shows an example of a complete cut (black arrows). 
+                            After making these cuts, the tiling can be transformed into a hinged kirigami structure example shown below.
+                        </p>
+                    </div>
+                </div>
+                <div class="env-image" style="max-width: 40%">
+                    <img src="https://segaviv.github.io/kirigami_tessellations/assets/eg_complete_cut-vDQhPDFN.png"></img>
+                </div>
+            </div>
+        </div>
+
+        <div class="environment definition" data-split="80">
+            <div class="env-content-container">
+                <div class="env-text-container">
+                    <div class="env-header">Definition 2 (hinged kirigami pattern & deployability)</div>
+                    <div class="env-text">
+                        We call a non-manifold mesh a <b>hinged kirigami pattern</b> if each interior
+                        vertex is incident to <i>exactly</i> two faces. 
+                    
+                        A hinged kirigami pattern is <b>deployable</b> if its faces can rotate <i>rigidly</i> around hinge vertices without collision with neighboring faces. 
+                        We call a tiling <b>deployable</b> if there exists a complete cut that transforms it into a deployable hinged kirigami pattern.
+                        We call the angle between the duplicated edges after cutting the opening angle. 
+                        We call a deployable tiling <b>uniformly deployable</b> if the opening angles of all interior edges have the same value across all deployment configurations.
+                    </div>
+                    <p class="note">
+                        Note: the example on the left is uniformly deployable; its deployment is a one-parameter family of configurations parameterized by a single opening angle.
+                    </p>
+                </div>
+                <div class="env-video" style="max-width: 40%">
+                    <video src="https://segaviv.github.io/kirigami_tessellations/assets/eg_deployable_hkp-CeJ00E0K.mp4" autoplay loop controls muted></video>
+                </div>
+            </div>
+        </div>
+
+        <h2>Core challenges</h2>
+        <!-- <p>
+         Our work bridges kirigami, auxetic metamaterials and computational design by addressing three core challenges.
+        </p> -->
+
+
+        <!-- Problem 1: deployability-->
+        <div class="problem-container">
+            <div class="environment problem" id="problem1">
+                
+                <div class="problem-header-container">
+                    <div class="env-header">Problem 1 (deployability of tilings)</div>
+                    <button class="solution-toggle-btn">show our solution</button>
+                </div>
+
+                <div class="env-content">
+                    How can we determine whether a tiling is deployable, 
+                    i.e., whether there exists a <b>complete cut</b> that transforms the tiling into a hinged kirigami structure 
+                    whose faces can rotate rigidly about hinge vertices without collision?
+                </div>
+            </div>
+            
+            <div class="dropdown-canvas" id="problem1Canvas">
+
+                <div class="dropdown-content">
+                    <div style="text-align: left; width: 100%;">
+
+                        <div class="environment remark" data-split="80">
+                            <div class="env-content-container">
+                                <div class="env-text-container">
+                                    <div class="env-header">Remark (combinatorial condition)</div>
+                                    <div class="env-text">
+                                          A planar manifold tiling can be cut into a valid hinged kirigami pattern <i>if and only if</i>
+                                            all its interior vertices have <b>even valency</b>.
+                                    </div>
+                                    <p class="note">
+                                        Note: to see why, consider the two adjacent cuts, they must have alternating directions to ensure that the hinge vertex after cutting is shared by exactly two faces. 
+                                        Please see Appendix A of our paper for the full proof.
+                                    </p>
+                                </div>
+                                <div class="env-image" style="max-width: 50%">
+                                    <img src="https://segaviv.github.io/kirigami_tessellations/assets/alternating_cutting-CRfVFQfi.png" autoplay loop controls muted></video>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="environment definition" data-split="80">
+                            <div class="env-content-container">
+                                <div class="env-text-container">
+                                    <div class="env-header">Definition 3 (deployment-friendly vertex)</div>
+                                    <div class="env-text">
+                                        Let \(\mathcal{T} = (\mathcal{V}, \mathcal{F})\) be a planar tiling with a complete cut \(\mathcal{E}_c\). 
+                                        Let \(v \in \mathcal{V}\) be a vertex of even valency \(2k\). 
+                                        Denote by \(\vec{e}_1, \cdots, \vec{e}_k\) the directed edges (cuts) in \(\mathcal{E}_c\) ending at \(v\), ordered cyclically. 
+                                        Vertex \(v\) is said to be <em>deployment-friendly</em> if \(\sum_{i=1}^k \vec{e}_i = \vec{0}\).
+                                    </div>
+                                    <p class="note">
+                                        Note: the example on the left highlights a deployment-friendly vertex \(v\) with valency 8. The directed edges (cuts) ending at \(v\) are shown as arrows colored in red, and their vector sum equals \(\vec{0}\), satisfying the deployment-friendly condition.
+                                    </p>
+                                </div>
+                                <div class="env-image" style="max-width: 30%">
+                                    <img src="https://segaviv.github.io/kirigami_tessellations/assets/deployment_friendly_vtx-BgDO6yFy.png" autoplay loop controls muted></video>
+                                </div>
+                            </div>
+                        </div>
+
+
+                         <div class="environment theorem">
+                            <div class="env-text-container">
+                                <div class="env-header">Proposition (necessary and sufficient condition for uniform deployability)</div>
+                                <div class="env-content">
+                                For a planar tiling with all interior vertices of even valency, the following are equivalent: 
+                                (1) Every interior vertex in the tiling is deployment-friendly. 
+                                (2) The resulting hinged kirigami structure is uniformly deployable in 2D.
+                                </div>
+                                <p class="note">
+                                    Note: the proof is based on the assumption of rigid face rotation and planar deployment, 
+                                    so the holes between faces remain planar during deployment. 
+                                    Please see Appendix B of our paper for the full proof.
+                                </p>
+                            </div>
+                        </div> 
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- probleme 2-->
+        <div class="problem-container">
+            <div class="environment problem" id="problem2">
+                
+                <div class="problem-header-container">
+                    <div class="env-header">Problem 2 (rotational deployment analysis)</div>
+                    <button class="solution-toggle-btn">show our solution</button>
+                </div>
+
+                <div class="env-content">
+                Given a uniformly deployable hinged kirigami pattern, how can we mathematically characterize 
+                the bounds of face rotations about hinges, i.e., its opening angles,
+                that define its maximally open configurations during deployment?
+                </div>
+                
+            </div>
+            
+            <div class="dropdown-canvas" id="problem2Canvas">
+                <div class="dropdown-content"> 
+                    
+
+
+                    <div class="environment remark" data-split="80">
+                        <div class="env-content-container">
+                            <div class="env-text-container">
+                                <div class="env-header">Remark </div>
+                                <div class="env-text">
+                                    A deployable hinged kirigami pattern typically admits two distinct maximally open configurations during deployment: 
+                                    (1) <strong>maximal area expansion</strong>, where the pattern achieves its largest projected coverage area, and 
+                                    (2) <strong>maximal rotation angle</strong>, beyond which further rotation would cause face collisions.
+                                </div>
+                            </div>
+                            <div class="env-image" style="max-width: 63%">
+                                <img src="https://segaviv.github.io/kirigami_tessellations/assets/deployment_configs-BtFjR8ws.png" autoplay loop controls muted></video>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: left; width: 100%;">
+                        For a <strong>uniformly</strong> deployable hinged kirigami pattern, its deployment can be parameterized by a <strong>single</strong> opening angle \(\theta\):
+                        <ul>
+                            <li> <strong> maximal area expansion</strong> configuration can be obtained by optimizing \(\theta\) to maximize the area of the open kirigami pattern, 
+                                accounting both for faces in the tiling and holes induced by cuts.</li>
+                            <li> <strong> maximal rotation angle</strong> configuration can be mathematically derived without optimization. Consider a hinge vertex \(v\) shared by two faces \(f_i\) and \(f_j\). 
+                                Let \(\alpha_i\) and \(\alpha_j\) denote the internal angles at \(v\) for these two faces. 
+                                The maximum opening angle allowed at \(v\) is  \( 2\pi - \alpha_i - \alpha_j \). 
+                                Rotating beyond this limit causes the faces to collide from the backside. 
+                                Hence, the global maximum opening angle for the entire tiling is the minimum of these local vertex bounds; beyond this threshold, collisions are inevitable.
+                            </li>
+                        </ul>
+
+                        
+                        Note that maximal area expansion configuration is commonly used in prior works. 
+                        In this work, <strong>we focus on maximal angle configuration</strong> as it offers the following advantages:
+                        <ul>
+                            <li>It can be <strong>derived explicitly</strong> without optimization, whereas the maximal area configuration for unconventional patterns often requires optimization</li>
+                            <li>It provides <strong>intuitive fabrication</strong> instructions for deployment: rotate faces around hinges until they collide from the backside, rather than targeting specific angles</li>
+                            <li>It enables a new approach for programmable curvature to emerge from <strong>local combinatorial changes</strong> without holes (see examples below)</li>
+                        </ul>
+                        <div class="video-row">
+                             <div class="env-video" style="max-width: 33%">
+                            <video src="https://segaviv.github.io/kirigami_tessellations/assets/vid_hemisphere-CRibqzSV.mp4" autoplay loop muted></video>
+                            </div>
+                             <div class="env-video" style="max-width: 33%">
+                            <video src="https://segaviv.github.io/kirigami_tessellations/assets/vid_pringles-CYkZkrPd.mp4" autoplay loop muted></video>
+                            </div>
+                            <div class="env-video" style="max-width: 33%">
+                            <video src="https://segaviv.github.io/kirigami_tessellations/assets/vid_flower-DGOLBTWK.mp4" autoplay loop muted></video>
+                            </div>
+                        </div>
+                
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- probleme 3: design deployable patterns-->
+<div class="problem-container">
+    <div class="environment problem" id="problem3">
+        <div class="problem-header-container">
+            <div class="env-header">Problem 3 (design deployable tilings)</div>
+            <button class="solution-toggle-btn">show our solution</button>
+        </div>
+        
+        <div class="env-content">
+        How can we design 2D manifold tilings that are guaranteed to be deployable?
+        </div>
+        
+    </div>
+    
+    <div class="dropdown-canvas" id="problem3Canvas">
+
+        <div class="dropdown-content">
+            <div style="text-align: left; width: 100%;">
+                To generate a deployable tiling, we just need to make sure that all its interior vertices have even valency and are deployment-friendly. 
+            
+                <div class="canvas-container">
+                    <!-- Design Canvas with controls below it -->
+                    <div class="canvas-wrapper">
+                        <div class="canvas-label">Design Canvas</div>
+                        <canvas id="designCanvas"></canvas>
+                        <div class="status-bar" id="designStatus">Click point A for group 1</div>
+                    </div>
+                    
+                    <!-- Preview Canvas with controls below it -->
+                    <div class="canvas-wrapper">
+                        <div class="canvas-label">Preview Canvas</div>
+                        <canvas id="previewCanvas"></canvas>
+                        <div class="status-bar" id="previewStatus">deployment-unfriendly vtx will be highlighted</div>
+                    </div>
+
+                    <div class="panel-row">
+                        <!-- Create Tiling Panel -->
+                        <div class="panel-third">
+                            <div class="panel-title">create tiling</div>
+                            <div class="panel-controls">
+                                
+
+                                <div class="weight-control">
+                                  <label for="gridSize">grid size</label>
+                                  <input type="range" id="gridSize" min="20" max="80" value="40">
+                                  <span id="gridSizeValue">40</span>
+                                </div>
+
+                            
+                                <div class="weight-control">
+                                    <label for="gridType">grid type  </label>
+                                    <select id="gridType">
+                                        <option value="quad">quad grid  </option>
+                                        <option value="triangle">triangle grid</option>
+                                        <option value="hex">hexagon grid</option>
+                                    </select>
+                                </div>
+
+                                <button class="panel-button" id="resetBtn">reset</button>
+                            </div>
+                        </div>
+                        
+
+                        <!-- Deploy Panel -->
+                        <div class="panel-third">
+                            <div class="panel-title">kirigami pattern</div>
+
+                            <div class="panel-controls">
+                                <button class="panel-button" id="generatePatternBtn">cut tiling into kirigami</button>                                    
+
+                                <div class="weight-row">
+                                    <div class="weight-control">
+                                        <label for="repeatX">\(n_x\)</label>
+                                        <input type="number" id="repeatX" min="1" max="10" value="3">
+                                    </div>
+                                    <div class="weight-control">
+                                        <label for="repeatY">\(n_y\)</label>
+                                        <input type="number" id="repeatY" min="1" max="10" value="3">
+                                    </div>
+                                </div>
+
+                                <div class="control-row angle-control">
+                                    <div class="deployment-controls">
+                                        <div class="auto-play-row">
+                                            <label for="autoPlayToggle">auto play</label>
+                                            <input type="checkbox" id="autoPlayToggle" checked>
+                                        </div>
+                                         <div class="slider-container">
+                                            <label for="openingAngleSlider">angle</label>
+                                            <input type="range" id="openingAngleSlider" min="0" max="60" value="0">
+                                            <span id="angleValue">0°</span>
+                                        </div>
+                                    </div>
+                                   
+                                    <div class="deployment-toggle">
+                                        <span class="deployment-label">deployment</span>
+                                        <div class="deployment-options">
+                                            <input type="radio" id="deploy-ini" name="deployment" value="ini" checked>
+                                            <label for="deploy-ini">ini</label>
+                                            <input type="radio" id="deploy-max-area" name="deployment" value="max-area">
+                                            <label for="deploy-max-area">max area</label>
+                                            <input type="radio" id="deploy-max-angle" name="deployment" value="max-angle">
+                                            <label for="deploy-max-angle">max angle</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                                                    
+                        <div class="panel-third">
+                            <div class="panel-title"> export patterns</div>
+                            <div class="export-options">
+                                <button class="panel-button">export cutting pattern</button>
+                                <button class="panel-button" id="savePatternBtn">save pattern (.json)</button>
+                                <button class="panel-button" id="loadPatternBtn">load pattern (.json)</button>
+                                <select id="patternPresetSelect">
+                                    <option value="" disabled selected>load pattern…</option>
+                                    <option value="arrow">arrow</option>
+                                    <option value="waterbomb">waterbomb</option>
+                                    <option value="hexagon_triangle">hexagon_triangle</option>
+                                    <option value="triangle_auxetic">triangle_auxetic</option>
+                                    <option value="diamond">diamond</option>
+                                    <option value="p1">p1</option>
+                                    <option value="p2">p2</option>
+                                    <option value="p3">p3</option>
+                                    <option value="p4">p4</option>
+                                    <option value="p5">p5</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>       
+        </div>
+    </div>
+</div>
+
+
+        <!-- probleme 4-->
+        <div class="problem-container">
+            <div class="environment problem" id="problem4">
+                <div class="problem-header-container">
+                    <div class="env-header">Problem 4 (inverse design)</div>
+                    <button class="solution-toggle-btn">show our solution</button>
+                </div>
+                
+                <div class="env-content">
+                How can we computationally modify a 2D manifold tiling such that, 
+                when cut and rotated to the maximal opening angle, it achieves a desired 3D geometry?
+                </div>
+            </div>
+            
+            <div class="dropdown-canvas" id="problem4Canvas">
+
+                <div class="dropdown-content">
+                    <div style="text-align: left; width: 100%;">
+                        <div class="algorithm-overview-header">
+                            <h3>Algorithm Overview</h3>
+                            <button class="overview-toggle-btn" id="overviewToggleBtn">show less</button>
+                        </div>
+                        
+                        <div class="algorithm-overview-content" id="algorithmOverview">
+                            <div style="display: flex; justify-content: center; width: 100%; margin: 1em 0;">
+                                <div class="env-image" style="max-width: 85%">
+                                    <img src="https://segaviv.github.io/kirigami_tessellations/assets/pipeline_optimization-D4fLQBwS.png">
+                                </div>
+                            </div>
+
+                            <ul>
+                                <li><b>input</b>: a specified tiling pattern and 3D target shape</li>
+                                <li><b>output</b>: optimized tiling with its
+                                <ul>
+                                <li> 2D embedding \(\mathbf{X}\) before deployment </li>
+                                <li> 3D embedding \(\mathbf{Y}\) after deployment</li>
+                                </ul>
+                                </li>
+                            <li><b>objectives</b>: 
+                                <ul>
+                                    <li><b>planarity</b>: deployed faces (\(\mathbf{Y}\)) are planar</li>
+                                    <li><b>reconfigurability</b>: corresponding faces before and after deployment stay rigid</li>
+                                    <li><b>shape approximation</b>: 3D embedding after deployment well approximates the target geometry</li>
+                                    <li><b>fairness</b>: the optimized tiling does not deviate too much from its initial shape</li>
+                                </ul>
+                            </li>
+                            <li><b>initializations</b>:</li>
+                                <ul>
+                                    <li>\(\mathbf{X}\) is initialized by \(\mathbf{X}^0\), which is given as input</li>
+                                    <li>\(\mathbf{Y}^0\) is the deployed state of \(\mathbf{X}^0\), solved in Problem 2</li>
+                                    <li> we parameterize the target geometry into 2D and get the flattening function \(f\). We then use \(f^{-1}\) to lift up \(\mathbf{Y}^0\), i.e., \(\mathbf{Y}^1 = f^{-1}(\mathbf{Y}^0)\in\mathbf{R}^3\) get the initial guess of \(\mathbf{Y}\)</li>
+                                </ul>
+                            </ul>
+                        </div>
+                        <p class="note">
+                            Note: please see Sec.4.3 and Appendix E of our paper for more details about the optimization objectives and implementation. 
+                            The source code can be find at <a href="https://github.com/segaviv/kirigami_patterns">here</a>.
+                        </p>
+
+
+
+
+                        <h3>Try it out :)</h3>
+                        <div class="algorithm-container">
+                            <div class="panel-row">
+
+                                <div class="panel-third">
+                                    <div class="panel-title">Load Target Mesh</div>
+                                    <div class="panel-content">
+                                        <div class="button-row">
+                                            <button class="panel-button load-button" id="loadMeshBtn">load mesh</button>
+                                            <button class="panel-button toggle-button" id="toggleWireframeBtn" disabled>show wireframe</button>
+                                        </div>
+                                        <input type="file" id="meshFileInput" accept=".obj,.off" style="display: none;">
+                                        <div class="model-viewer" id="meshViewer">
+                                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; background: #f0f0f0;">
+                                                No mesh loaded
+                                            </div>
+                                        </div>
+                                        <div id="meshStats" class="mesh-stats"> </div>
+                                    </div>
+                                </div>
+                                
+
+                                <div class="panel-third">
+                                    <div class="panel-title">Load Kirigami Pattern</div>
+                                    <div class="panel-content">
+                                        <div class="weight-row">
+                                            <select id="patternPresetSelectP4">
+                                                <option value="" disabled selected>select a kirigami pattern…</option>
+                                                <option value="arrow">arrow</option>
+                                                <option value="waterbomb">waterbomb</option>
+                                                <option value="hexagon_triangle">hexagon_triangle</option>
+                                                <option value="triangle_auxetic">triangle_auxetic</option>
+                                                <option value="diamond">diamond</option>
+                                                <option value="p1">p1</option>
+                                                <option value="p2">p2</option>
+                                                <option value="p3">p3</option>
+                                                <option value="p4">p4</option>
+                                                <option value="p5">p5</option>
+                                            </select>
+                                        </div>
+                                        <div class="canvas-wrapper" style="margin-top: 0px; width: 100%; height: 200px;">
+                                            <!-- <div class="canvas-label">Preview Canvas</div> -->
+                                            <canvas id="previewCanvasP4" style="width: 100%; height: 100%;"></canvas>
+                                            <!-- <div class="status-bar" id="previewStatusP4">select a pattern to preview</div> -->
+                                        </div>
+                                        <!-- <div class="info-text">
+                                            <p>Load an existing pattern or generate one from the design canvas.</p>
+                                        </div> -->
+                                    </div>
+                                </div>
+                                
+
+                                <div class="panel-third">
+                                    <div class="panel-title">Optimization</div>
+                                    <div class="panel-content">
+                                      <!-- <button class="panel-button" id="initOptimizationButton" disabled>Init Optimization</button> -->
+                                        <div class="button-row">
+                                            <button class="panel-button load-button" id="initOptimizationButton" disabled>init. optimization</button>
+                                            <button class="panel-button load-button" id="runOptimizationBtn" disabled>run optimization</button>
+                                        </div>
+
+                                        <h5>Parameters for initialization</h5>
+                                        <div class="lift-params">
+                                            <div class="weight-row">
+                                                <div class="weight-control">
+                                                    <label for="scaleInput">scale</label>
+                                                    <input type="range" id="scaleInput" min="0.1" max="4" value="1" step="0.1">
+                                                </div>
+                                                <div class="weight-control">
+                                                    <label for="rotationInput">rot (°)</label>
+                                                    <input type="range" id="rotationInput" min="0" max="360" value="0" step="1">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <h5>Weights for optimization</h5>
+                                        <div class="weight-row compact">
+                                            <div class="weight-control">
+                                                <label for="planarityWeight">\(w_p\)</label>
+                                                <input type="number" id="planarityWeight" title="Planarity weight" min="0" max="10" value="5" step="0.1">
+                                            </div>
+                                            <div class="weight-control">
+                                                <label for="shapeWeight">\(w_s\)</label>
+                                                <input type="number" id="shapeWeight" min="0" max="10" value="5" step="0.1">
+                                            </div>
+                                            <div class="weight-control">
+                                                <label for="rigidityWeight">\(w_r\)</label>
+                                                <input type="number" id="rigidityWeight" min="0" max="10" value="5" step="0.1">
+                                            </div>
+                                            <div class="weight-control">
+                                                <label for="fairnessWeight">\(w_f\)</label>
+                                                <input type="number" id="fairnessWeight" min="0" max="10" value="5" step="0.1">
+                                            </div>
+                                        </div>
+    
+                                    </div>
+                                
+                                    
+                                    <div class="error-metrics" id="errorMetrics">
+                                      <div class="error-header">
+                                        <h5>Errors</h5>
+                                        <div class="toggle">
+                                          <input type="radio" id="maxError" name="errorType" value="max" checked>
+                                          <label for="maxError">max</label>
+                                          <input type="radio" id="avgError" name="errorType" value="avg">
+                                          <label for="avgError">avg</label>
+                                          <span class="slider"></span>
+                                        </div>
+                                      </div>
+                                      <div class="error-values">
+                                         <div>rigidity<span id="rigidityError">N/A</span></div>
+                                          <div>planarity<span id="planarityError">N/A</span></div>
+                                          <div>shape<span id="shapeError">N/A</span></div>
+                                        </div>
+                                      </div> 
+                                </div>
+
+
+                            </div>
+                            <div class="panel-row">
+                                <div class="panel-half">
+                                    <div class="panel-title">Initial Configuration</div>
+                                    <div class="canvas-placeholder" id="canvasOptiIni">
+                                        <!-- <span>Initial configuration visualization</span> -->
+                                         <canvas id="initialConfigCanvas" style="width: 100%; height: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <!-- <div class="panel-half">
+                                    <div class="panel-title">Deployed Configuration</div>
+                                    <div class="canvas-placeholder" id="canvasOptiDeploy">
+                                        <span>Deployed configuration visualization</span>
+                                    </div>
+                                </div> -->
+
+                                <div class="panel-half">
+                                    <div class="panel-title">Deployed Configuration</div>
+                                    <div class="canvas-placeholder" id="canvasOptiDeploy">
+                                        <span>Deployed configuration visualization</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    
+</body>
+</html>
