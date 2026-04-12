@@ -36,11 +36,16 @@ if(NOT TARGET Eigen3::Eigen)
                                                  ${eigen3_SOURCE_DIR})
 endif()
  
-file(GLOB SRC_FILES cpp/*.cpp cpp/parameterization/*.cpp cpp/opt/*.cpp)
-add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen Optiz igl::core)
+file(GLOB CORE_SRC cpp/*.cpp cpp/parameterization/*.cpp cpp/opt/*.cpp)
+list(REMOVE_ITEM CORE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/cpp/bind.cpp")
+list(REMOVE_ITEM CORE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/cpp/main_batch.cpp")
 
+add_executable(${PROJECT_NAME} ${CORE_SRC} cpp/bind.cpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen Optiz igl::core)
 target_link_options(${PROJECT_NAME} PRIVATE -sMODULARIZE -sEXPORT_NAME="createModule" --bind  -sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=5MB  -sNO_EXIT_RUNTIME=0 -sASSERTIONS=2)
+
+add_executable(kirigami_batch ${CORE_SRC} cpp/main_batch.cpp)
+target_link_libraries(kirigami_batch PUBLIC Eigen3::Eigen Optiz igl::core)
 
 add_custom_command(TARGET ${PROJECT_NAME}
 POST_BUILD

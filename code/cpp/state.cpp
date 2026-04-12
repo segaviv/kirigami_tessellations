@@ -18,6 +18,7 @@ std::string target_mesh_name;
 std::string pattern_name;
 std::vector<IterationData> iteration_data;
 bool record = false;
+bool is_2d_mode = false;
 
 double rigid_avg_error = 0, rigid_max_error = 0,
               close_avg_error = 0, close_max_error = 0,

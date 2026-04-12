@@ -3,7 +3,7 @@
 namespace opt {
 
 extern float rigid_weight, closeness_weight, planarity_weight,
-    close_to_init_weight, smoothness_weight;
+    close_to_init_weight, smoothness_weight, boundary_weight, shape_2d_weight;
 
 void init();
 void optimize_rigidity();

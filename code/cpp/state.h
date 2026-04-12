@@ -21,6 +21,8 @@ extern float rotate;
 extern Eigen::Vector2f translate;
 extern float opening_angle;
 
+extern bool is_2d_mode;
+
 extern double rigid_avg_error, rigid_max_error, close_avg_error,
     close_max_error, planarity_avg_error, planarity_max_error, runtime;
 

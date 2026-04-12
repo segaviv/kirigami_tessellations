@@ -12,11 +12,23 @@
 namespace opt {
 
 int num_iters = 0;
-float orig_close_to_init_weight = 10;
+float orig_close_to_init_weight = 0.0;
 float rigid_weight = 10.0, closeness_weight = 0.1, planarity_weight = 10,
-      close_to_init_weight = 0.5, smoothness_weight = 0.1;
+      close_to_init_weight = 0.0, smoothness_weight = 0.1,
+      boundary_weight = 10.0, shape_2d_weight = 10.0;
 
 igl::AABB<Eigen::MatrixXd, 3> tree;
+std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> target_boundaries;
+
+template <typename T>
+T point_segment_sqrd_distance(const Eigen::Matrix<T, 3, 1>& p, const Eigen::Vector3d& v, const Eigen::Vector3d& w) {
+    double l2 = (v - w).squaredNorm();
+    if (l2 == 0.0) return (p - v.cast<T>()).squaredNorm();
+    T t = std::max(T(0.0), std::min(T(1.0), (p - v.cast<T>()).dot((w - v).cast<T>()) / l2));
+    Eigen::Matrix<T, 3, 1> projection = v.cast<T>() + t * (w - v).cast<T>();
+    return (p - projection).squaredNorm();
+}
+
 Eigen::MatrixXi F;
 
 std::unique_ptr<Optiz::Problem> prob = nullptr;
@@ -121,6 +133,14 @@ void init() {
   tree.init(V, F);
   state::opt_lifted = state::lifted.V;
   state::opt_ground = state::ground_closed.V;
+
+  target_boundaries.clear();
+  for (int i = 0; i < state::target_mesh.edges.size(); ++i) {
+    if (state::target_mesh.edges[i].is_boundary()) {
+      auto e = state::target_mesh.edges[i];
+      target_boundaries.push_back({e.origin()->coords(), e.next()->origin()->coords()});
+    }
+  }
 }
 
 void init_prob() {
@@ -154,8 +174,79 @@ void init_prob() {
     return close_to_init_weight * (xp - orig).squaredNorm();
   });
 
+  // Boundary Force
+  if (!target_boundaries.empty()) {
+      prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
+        using T = FACTORY_TYPE(x);
+        if (!state::lifted.is_boundary_vertex(i)) return T(0.0);
+        auto &x1 = x.var_block(0);
+        Eigen::Matrix<T, 3, 1> xp = x1.row(i).transpose();
+
+        Eigen::Vector3d xp_val = Optiz::val(xp);
+        double min_dist = std::numeric_limits<double>::max();
+        int min_idx = -1;
+        for (int j = 0; j < target_boundaries.size(); ++j) {
+          // Calculate distance using value type to find nearest neighbor segment
+          double d = Optiz::val(point_segment_sqrd_distance<T>(xp, target_boundaries[j].first, target_boundaries[j].second));
+          if (d < min_dist) {
+            min_dist = d;
+            min_idx = j;
+          }
+        }
+        if (min_idx == -1) return T(0.0);
+        return boundary_weight * point_segment_sqrd_distance<T>(xp, target_boundaries[min_idx].first, target_boundaries[min_idx].second);
+      });
+  }
+
+  // 2D Shape valid deployment energy
+  if (state::ground_closed.F.size() > 0) {
+    prob->add_element_energy(state::ground_closed.F.size(), [&](int f, auto &xx) {
+      using T = FACTORY_TYPE(xx);
+      auto &x2 = xx.var_block(1);
+      T err(0.0);
+      auto const& face = state::ground_closed.F[f];
+      if (face.size() < 3) return err;
+      
+      auto p0_orig = state::ground_closed.V.row(face[0]).head(2);
+      auto p1_orig = state::ground_closed.V.row(face[1]).head(2);
+      Eigen::Vector2d u_orig = p1_orig - p0_orig;
+      double L0_sqOrig = u_orig.squaredNorm();
+      if (L0_sqOrig < 1e-10) return err;
+
+      for (int j = 2; j < face.size(); j++) {
+        auto pj_orig = state::ground_closed.V.row(face[j]).head(2);
+        Eigen::Vector2d v_orig = pj_orig - p0_orig;
+        
+        double alpha = u_orig.dot(v_orig) / L0_sqOrig;
+        double beta  = (u_orig.x() * v_orig.y() - u_orig.y() * v_orig.x()) / L0_sqOrig;
+        
+        Eigen::Matrix<T, 2, 1> p0 = x2.row(face[0]).head(2).transpose();
+        Eigen::Matrix<T, 2, 1> p1 = x2.row(face[1]).head(2).transpose();
+        Eigen::Matrix<T, 2, 1> pj = x2.row(face[j]).head(2).transpose();
+        
+        Eigen::Matrix<T, 2, 1> u = p1 - p0;
+        Eigen::Matrix<T, 2, 1> v = pj - p0;
+        
+        Eigen::Matrix<T, 2, 1> u_perp;
+        u_perp << -u.y(), u.x();
+        
+        Eigen::Matrix<T, 2, 1> expected_v = alpha * u + beta * u_perp;
+        err += (v - expected_v).squaredNorm();
+      }
+      return shape_2d_weight * err;
+    });
+  }
+
+  // Strict 2D Z-plane energy
+  if (state::is_2d_mode) {
+    prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
+      auto &x1 = x.var_block(0);
+      return 100000.0 * Optiz::sqr(x1(i, 2));
+    });
+  }
+
   // Planarity.
-  if (state::lifted.max_face_degree() > 3) {
+  if (!state::is_2d_mode && state::lifted.max_face_degree() > 3) {
     prob->add_element_energy(state::lifted.F.size(), [&](int i, auto &x) {
       using T = FACTORY_TYPE(x);
       if (state::lifted.F[i].size() <= 3)
@@ -200,6 +291,11 @@ void optimize_rigidity() {
   prob->optimize();
   state::opt_lifted = prob->x(0);
   state::opt_ground = prob->x(1);
+  
+  if (state::is_2d_mode) {
+      state::opt_lifted.col(2).setZero();
+  }
+  
   if (num_iters++ % 20 == 0)
     close_to_init_weight *= 0.8;
 }
