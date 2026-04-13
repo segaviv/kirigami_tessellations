@@ -2,8 +2,10 @@
 
 #include <Eigen/Eigen>
 #include <unordered_map>
+#ifdef __EMSCRIPTEN__
 #include <emscripten/bind.h>
 using namespace emscripten;
+#endif
 #include <vector>
 
 namespace convert {
@@ -75,6 +77,7 @@ template <typename T> auto eigen_vec_map(const std::vector<T> &vec) {
   return Eigen::VectorX<T>::Map(vec.data(), vec.size());
 }
 
+#ifdef __EMSCRIPTEN__
 template<typename T>
 Eigen::MatrixX<T> js_array_to_eig(val js_array) {
     int rows = js_array["length"].as<unsigned>();
@@ -91,5 +94,6 @@ Eigen::MatrixX<T> js_array_to_eig(val js_array) {
     }
     return mat;
 }
+#endif
 
 } // namespace convert

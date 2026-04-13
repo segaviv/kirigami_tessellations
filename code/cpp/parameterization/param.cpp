@@ -2,7 +2,7 @@
 #include "../conversions.h"
 #include <Optiz/Optiz.h>
 #include <Optiz/Linear/QuadraticObjectiveD.h>
-#include <Optiz/Autodiff/MetaMat.h>
+#include <Optiz/Meta/MetaMat.h>
 #include "../utils.h"
 
 namespace param {

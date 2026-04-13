@@ -15,17 +15,17 @@ int num_iters = 0;
 float orig_close_to_init_weight = 0.0;
 float rigid_weight = 10.0, closeness_weight = 0.1, planarity_weight = 10,
       close_to_init_weight = 0.0, smoothness_weight = 0.1,
-      boundary_weight = 10.0, shape_2d_weight = 10.0;
+      boundary_weight = 100.0, shape_2d_weight = 10.0;
 
 igl::AABB<Eigen::MatrixXd, 3> tree;
-std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> target_boundaries;
+std::vector<std::pair<Eigen::VectorXd, Eigen::VectorXd>> target_boundaries;
 
-template <typename T>
-T point_segment_sqrd_distance(const Eigen::Matrix<T, 3, 1>& p, const Eigen::Vector3d& v, const Eigen::Vector3d& w) {
+template <typename T, typename Derived>
+T point_segment_sqrd_distance(const Eigen::MatrixBase<Derived>& p, const Eigen::VectorXd& v, const Eigen::VectorXd& w) {
     double l2 = (v - w).squaredNorm();
     if (l2 == 0.0) return (p - v.cast<T>()).squaredNorm();
     T t = std::max(T(0.0), std::min(T(1.0), (p - v.cast<T>()).dot((w - v).cast<T>()) / l2));
-    Eigen::Matrix<T, 3, 1> projection = v.cast<T>() + t * (w - v).cast<T>();
+    Eigen::Matrix<T, Eigen::Dynamic, 1> projection = v.cast<T>() + t * (w - v).cast<T>();
     return (p - projection).squaredNorm();
 }
 
@@ -128,17 +128,42 @@ double get_planarity_error(int i, auto &xx) {
 };
 
 void init() {
+  // Force re-creation of the optimization problem with correct data
+  // (target_boundaries, opt_lifted, opt_ground are all re-initialized here)
+  prob = nullptr;
+  num_iters = 0;
+
   F = convert::to_eig_mat(state::target_mesh.F);
   Eigen::MatrixXd &V = state::target_mesh.V;
   tree.init(V, F);
-  state::opt_lifted = state::lifted.V;
-  state::opt_ground = state::ground_closed.V;
+  
+  // Helper lambda to ensure a matrix is Nx3, padding with zeros if needed
+  auto pad_to_3d = [](const Eigen::MatrixXd &M) -> Eigen::MatrixXd {
+    if (M.cols() >= 3) return M;
+    Eigen::MatrixXd M3d = Eigen::MatrixXd::Zero(M.rows(), 3);
+    M3d.leftCols(M.cols()) = M;
+    return M3d;
+  };
+
+  if (state::is_2d_mode) {
+      state::opt_lifted = pad_to_3d(state::lifted.V);
+      state::opt_lifted.col(2).setZero();
+      state::opt_ground = pad_to_3d(state::ground_closed.V);
+      state::opt_ground.col(2).setZero();
+  } else {
+      state::opt_lifted = state::lifted.V;
+      state::opt_ground = state::ground_closed.V;
+  }
 
   target_boundaries.clear();
   for (int i = 0; i < state::target_mesh.edges.size(); ++i) {
     if (state::target_mesh.edges[i].is_boundary()) {
       auto e = state::target_mesh.edges[i];
-      target_boundaries.push_back({e.origin()->coords(), e.next()->origin()->coords()});
+      if (state::is_2d_mode) {
+          target_boundaries.push_back({e.origin()->coords().head(2), e.next()->origin()->coords().head(2)});
+      } else {
+          target_boundaries.push_back({e.origin()->coords(), e.next()->origin()->coords()});
+      }
     }
   }
 }
@@ -155,17 +180,20 @@ void init_prob() {
   });
 
   // Closeness energy.
-  prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
-    using T = FACTORY_TYPE(x);
-    int f;
-    Eigen::RowVector3d cp;
-    Eigen::RowVector3d p = prob->x(0).row(i);
-    tree.squared_distance(state::target_mesh.V, F, p, f, cp);
-    auto &x1 = x.var_block(0);
-    auto xp = x1.row(i);
-    Eigen::Vector3d n = state::target_mesh.face(f).normal();
-    return closeness_weight * Optiz::sqr((xp - cp).dot(n));
-  });
+  if (!state::is_2d_mode) {
+      prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
+        using T = FACTORY_TYPE(x);
+        int f;
+        Eigen::RowVector3d cp;
+        Eigen::RowVector3d p = prob->x(0).row(i);
+        tree.squared_distance(state::target_mesh.V, F, p, f, cp);
+        auto &x1 = x.var_block(0);
+        auto xp = x1.row(i);
+        Eigen::Vector3d n = state::target_mesh.face(f).normal();
+        return closeness_weight * Optiz::sqr((xp - cp).dot(n));
+      });
+  }
+  
   // Close to the init.
   prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
     auto orig = state::lifted.V.row(i);
@@ -180,26 +208,37 @@ void init_prob() {
         using T = FACTORY_TYPE(x);
         if (!state::lifted.is_boundary_vertex(i)) return T(0.0);
         auto &x1 = x.var_block(0);
-        Eigen::Matrix<T, 3, 1> xp = x1.row(i).transpose();
 
-        Eigen::Vector3d xp_val = Optiz::val(xp);
+        // dim = 2 in 2D mode, 3 in 3D mode (match boundary segment storage)
+        int dim = target_boundaries[0].first.size();
+
+        // Extract value-type position vector of correct dimension
+        Eigen::VectorXd xp_val(dim);
+        for (int k = 0; k < dim; ++k) xp_val(k) = Optiz::val(x1(i, k));
+
         double min_dist = std::numeric_limits<double>::max();
         int min_idx = -1;
         for (int j = 0; j < target_boundaries.size(); ++j) {
-          // Calculate distance using value type to find nearest neighbor segment
-          double d = Optiz::val(point_segment_sqrd_distance<T>(xp, target_boundaries[j].first, target_boundaries[j].second));
+          double d = point_segment_sqrd_distance<double>(xp_val, target_boundaries[j].first, target_boundaries[j].second);
           if (d < min_dist) {
             min_dist = d;
             min_idx = j;
           }
         }
         if (min_idx == -1) return T(0.0);
-        return boundary_weight * point_segment_sqrd_distance<T>(xp, target_boundaries[min_idx].first, target_boundaries[min_idx].second);
+
+        // Autodiff position vector of same dimension
+        Eigen::Matrix<T, Eigen::Dynamic, 1> xp_ad(dim);
+        for (int k = 0; k < dim; ++k) xp_ad(k) = x1(i, k);
+        return boundary_weight * point_segment_sqrd_distance<T>(xp_ad, target_boundaries[min_idx].first, target_boundaries[min_idx].second);
       });
   }
 
+
   // 2D Shape valid deployment energy
-  if (state::ground_closed.F.size() > 0) {
+  // In 2D mode: shape_2d_weight is disabled — it over-constrains the system
+  // and prevents the optimizer from freely adapting edge lengths.
+  if (!state::is_2d_mode && state::ground_closed.F.size() > 0) {
     prob->add_element_energy(state::ground_closed.F.size(), [&](int f, auto &xx) {
       using T = FACTORY_TYPE(xx);
       auto &x2 = xx.var_block(1);
@@ -237,14 +276,6 @@ void init_prob() {
     });
   }
 
-  // Strict 2D Z-plane energy
-  if (state::is_2d_mode) {
-    prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
-      auto &x1 = x.var_block(0);
-      return 100000.0 * Optiz::sqr(x1(i, 2));
-    });
-  }
-
   // Planarity.
   if (!state::is_2d_mode && state::lifted.max_face_degree() > 3) {
     prob->add_element_energy(state::lifted.F.size(), [&](int i, auto &x) {
@@ -269,11 +300,36 @@ void init_prob() {
       return rigid_weight * get_face_rigid_error(i, x, true);
     });
   }
+
+  // In 2D mode: pin Z coordinate to 0 strongly
+  if (state::is_2d_mode) {
+    prob->add_element_energy(state::lifted.V.rows(), [&](int i, auto &x) {
+      auto &x1 = x.var_block(0);
+      return 100000.0 * Optiz::sqr(x1(i, 2));
+    });
+    prob->add_element_energy(state::ground_closed.V.rows(), [&](int i, auto &x) {
+      auto &x2 = x.var_block(1);
+      return 100000.0 * Optiz::sqr(x2(i, 2));
+    });
+  }
 }
 
 void reset_optimization() {
-  state::opt_lifted = state::lifted.V;
-  state::opt_ground = state::ground_closed.V;
+  if (state::is_2d_mode) {
+    auto pad_to_3d = [](const Eigen::MatrixXd &M) -> Eigen::MatrixXd {
+      if (M.cols() >= 3) return M;
+      Eigen::MatrixXd M3d = Eigen::MatrixXd::Zero(M.rows(), 3);
+      M3d.leftCols(M.cols()) = M;
+      return M3d;
+    };
+    state::opt_lifted = pad_to_3d(state::lifted.V);
+    state::opt_lifted.col(2).setZero();
+    state::opt_ground = pad_to_3d(state::ground_closed.V);
+    state::opt_ground.col(2).setZero();
+  } else {
+    state::opt_lifted = state::lifted.V;
+    state::opt_ground = state::ground_closed.V;
+  }
   close_to_init_weight = orig_close_to_init_weight;
   num_iters = 0;
   prob = nullptr;
@@ -292,10 +348,12 @@ void optimize_rigidity() {
   state::opt_lifted = prob->x(0);
   state::opt_ground = prob->x(1);
   
+  // Hard-clamp Z to exactly 0 in 2D mode
   if (state::is_2d_mode) {
-      state::opt_lifted.col(2).setZero();
+    state::opt_lifted.col(2).setZero();
+    state::opt_ground.col(2).setZero();
   }
-  
+
   if (num_iters++ % 20 == 0)
     close_to_init_weight *= 0.8;
 }

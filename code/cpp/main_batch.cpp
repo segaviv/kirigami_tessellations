@@ -9,8 +9,8 @@
 #include "sym_pattern.h"
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <igl/readOBJ.h>
-#include <igl/writeOBJ.h>
 
 void parameterizeMesh(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
   state::target_mesh = utils::Hmesh(V, convert::to_vec_vec(F));
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
   opt::init();
 
   std::cout << "Running optimization..." << std::endl;
-  for (int i = 0; i < 200; ++i) { // Run for 200 iterations
+  for (int i = 0; i < 500; ++i) { // Run for 500 iterations
     opt::optimize_rigidity();
   }
   
@@ -105,34 +105,49 @@ int main(int argc, char *argv[]) {
   std::cout << " - close_avg: " << close_avg << std::endl;
 
   // 3. Export Output
-  Eigen::MatrixXd centered_opt_lifted = state::opt_lifted;
-  centered_opt_lifted.rowwise() -= centered_opt_lifted.colwise().mean();
+  Eigen::MatrixXd export_opt_lifted(state::opt_lifted.rows(), 3);
+  export_opt_lifted.setZero();
+  export_opt_lifted.leftCols(state::opt_lifted.cols()) = state::opt_lifted;
+  export_opt_lifted.rowwise() -= export_opt_lifted.colwise().mean();
 
-  // Convert faces format
-  Eigen::MatrixXi lifted_F(state::lifted.F.size(), 3);
-  for(size_t i=0; i<state::lifted.F.size(); ++i) {
-      for(size_t j=0; j<3; ++j) {
-          lifted_F(i,j) = state::lifted.F[i][j];
-      }
-  }
-  
-  Eigen::MatrixXi floor_F(state::ground_closed.F.size(), 3);
-  for(size_t i=0; i<state::ground_closed.F.size(); ++i) {
-      if(state::ground_closed.F[i].size() >= 3) {
-        for(size_t j=0; j<3; ++j) {
-            floor_F(i,j) = state::ground_closed.F[i][j];
-        }
-      }
-  }
+  // Helper: write OBJ with polygonal faces (quads, n-gons)
+  auto writePolyOBJ = [](const std::string& path,
+                          const Eigen::MatrixXd& V,
+                          const std::vector<std::vector<int>>& F) {
+    std::ofstream out(path);
+    for (int i = 0; i < V.rows(); ++i)
+      out << "v " << V(i,0) << " " << V(i,1) << " " << V(i,2) << "\n";
+    for (const auto& face : F) {
+      out << "f";
+      for (int idx : face) out << " " << (idx + 1); // 1-indexed
+      out << "\n";
+    }
+    out.close();
+  };
 
   std::string out_lifted = output_prefix + "_lifted.obj";
   std::string out_ground = output_prefix + "_ground.obj";
 
-  igl::writeOBJ(out_lifted, centered_opt_lifted, lifted_F);
-  igl::writeOBJ(out_ground, state::opt_ground, floor_F);
+  Eigen::MatrixXd export_opt_ground(state::opt_ground.rows(), 3);
+  export_opt_ground.setZero();
+  export_opt_ground.leftCols(state::opt_ground.cols()) = state::opt_ground;
 
-  std::cout << "Saved 3D lifting to " << out_lifted << std::endl;
-  std::cout << "Saved 2D ground to " << out_ground << std::endl;
+  writePolyOBJ(out_lifted, export_opt_lifted, state::lifted.F);
+  writePolyOBJ(out_ground, export_opt_ground, state::ground_closed.F);
+
+  // Export state::ground: genuinely opened 2D positions (before circle projection)
+  if (state::ground.V.rows() > 0) {
+    Eigen::MatrixXd V_opened(state::ground.V.rows(), 3);
+    V_opened.setZero();
+    V_opened.leftCols(state::ground.V.cols()) = state::ground.V;
+    writePolyOBJ(output_prefix + "_opened.obj", V_opened, state::ground.F);
+    std::cout << "Saved opened 2D pattern to " << output_prefix << "_opened.obj" << std::endl;
+  }
+
+  std::cout << "Saved deployed (opt) to " << out_lifted << std::endl;
+  std::cout << "Saved folded (opt) to "   << out_ground  << std::endl;
 
   return 0;
 }
+
+
