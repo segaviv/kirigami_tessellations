@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/CMakeFiles/libigl-populate"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/CMakeFiles/libigl-populate.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/CMakeFiles/libigl-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-build.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-download.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-install.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-test.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"libigl-populate"
+		],
+		"name" : "libigl-populate"
+	}
+}

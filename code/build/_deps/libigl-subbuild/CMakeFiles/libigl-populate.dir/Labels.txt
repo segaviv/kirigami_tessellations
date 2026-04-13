@@ -1,0 +1,14 @@
+# Target labels
+ libigl-populate
+# Source files and their labels
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/CMakeFiles/libigl-populate
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/CMakeFiles/libigl-populate.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/CMakeFiles/libigl-populate-complete.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-build.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-configure.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-download.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-install.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-mkdir.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-patch.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-test.rule
+/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-subbuild/libigl-populate-prefix/src/libigl-populate-stamp/libigl-populate-update.rule

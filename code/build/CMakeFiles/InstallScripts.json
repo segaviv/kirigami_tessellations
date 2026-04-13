@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/cmake_install.cmake",
+		"/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-build/cmake_install.cmake",
+		"/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/libigl-build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

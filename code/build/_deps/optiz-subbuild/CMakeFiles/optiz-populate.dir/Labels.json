@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/CMakeFiles/optiz-populate"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/CMakeFiles/optiz-populate.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/CMakeFiles/optiz-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-build.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-download.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-install.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-test.rule"
+		},
+		{
+			"file" : "/Users/julienkloers/Documents/Code2/princeton/kirigami_tessellations/code/build/_deps/optiz-subbuild/optiz-populate-prefix/src/optiz-populate-stamp/optiz-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"optiz-populate"
+		],
+		"name" : "optiz-populate"
+	}
+}
